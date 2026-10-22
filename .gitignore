@@ -25,6 +25,7 @@ backups/
 .env
 .env.*
 !.env.example
+.usuario_local
 
 # IDE e sistema operacional
 .vscode/

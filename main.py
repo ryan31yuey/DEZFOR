@@ -2,12 +2,15 @@
 import customtkinter as ctk
 
 from database.database import Database
+from database.auth import criar_tabela
 from ui.login import Login
 from ui.main_window import DezforApp
 
 
 def main():
-    Database().fechar()
+    banco = Database()
+    banco.fechar()
+    criar_tabela()
 
     janela = ctk.CTk()
     janela.title("DEZFOR")
@@ -21,6 +24,7 @@ def main():
         DezforApp(janela)
 
     Login(master=janela, abrir_sistema=abrir_sistema)
+
     janela.mainloop()
 
 
