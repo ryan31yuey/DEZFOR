@@ -1,54 +1,92 @@
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
+
 from datetime import datetime
+from pathlib import Path
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer,
+    Table, TableStyle
+)
+
+AZUL = colors.HexColor("#1976D2")
+CINZA = colors.HexColor("#F3F5F8")
+ARQUIVO = Path(__file__).resolve().parent / "relatorio_movimentacoes.pdf"
 
 
 def gerar_pdf_movimentacoes(movimentacoes):
-    nome_arquivo = "reports/relatorio_movimentacoes.pdf"
+    ARQUIVO.parent.mkdir(parents=True, exist_ok=True)
 
-    pdf = canvas.Canvas(nome_arquivo, pagesize=A4)
+    documento = SimpleDocTemplate(
+        str(ARQUIVO), pagesize=A4,
+        leftMargin=35, rightMargin=35,
+        topMargin=45, bottomMargin=45
+    )
 
-    largura, altura = A4
+    estilos = getSampleStyleSheet()
+    titulo = estilos["Title"]
+    titulo.textColor = AZUL
 
-    pdf.setFont("Helvetica-Bold", 18)
-    pdf.drawString(170, altura - 50, "SAFECONTROL NR35")
+    conteudo = [
+        Paragraph("DEZFOR", titulo),
+        Paragraph("Relatório de Movimentações", estilos["Heading2"]),
+        Paragraph(
+            f"Emitido em {datetime.now():%d/%m/%Y às %H:%M}",
+            estilos["Normal"]
+        ),
+        Spacer(1, 25)
+    ]
 
-    pdf.setFont("Helvetica-Bold", 14)
-    pdf.drawString(150, altura - 80, "Relatório de Movimentações")
+    colunas = ["Data", "Hora", "Colaborador", "Equipamento", "Tipo", "Qtd"]
+    larguras = [65, 55, 125, 125, 90, 50]
 
-    pdf.setFont("Helvetica", 10)
-    pdf.drawString(40, altura - 110, f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    estilo_celula = estilos["BodyText"].clone("CelulaDEZFOR")
+    estilo_celula.fontName = "Helvetica"
+    estilo_celula.fontSize = 8
+    estilo_celula.leading = 11
+    estilo_celula.wordWrap = "CJK"
 
-    y = altura - 150
+    dados = [colunas] + [
+        [
+            Paragraph(
+                str(valor).replace("&", "&amp;")
+                .replace("<", "&lt;").replace(">", "&gt;"),
+                estilo_celula
+            )
+            for valor in registro
+        ]
+        for registro in movimentacoes
+    ]
 
-    pdf.setFont("Helvetica-Bold", 9)
-    pdf.drawString(40, y, "Data")
-    pdf.drawString(100, y, "Hora")
-    pdf.drawString(160, y, "Colaborador")
-    pdf.drawString(300, y, "Equipamento")
-    pdf.drawString(450, y, "Tipo")
-    pdf.drawString(520, y, "Qtd")
+    tabela = Table(dados, colWidths=larguras, repeatRows=1)
+    tabela.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), AZUL),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+         [colors.white, CINZA]),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("LINEBELOW", (0, 0), (-1, 0), 1, AZUL),
+    ]))
 
-    y -= 20
-    pdf.setFont("Helvetica", 9)
+    conteudo.append(tabela)
+    documento.build(conteudo, onFirstPage=rodape, onLaterPages=rodape)
 
-    for mov in movimentacoes:
-        data, hora, colaborador, equipamento, tipo, quantidade = mov
+    return str(ARQUIVO)
 
-        pdf.drawString(40, y, str(data))
-        pdf.drawString(100, y, str(hora))
-        pdf.drawString(160, y, str(colaborador)[:20])
-        pdf.drawString(300, y, str(equipamento)[:22])
-        pdf.drawString(450, y, str(tipo))
-        pdf.drawString(520, y, str(quantidade))
 
-        y -= 18
-
-        if y < 50:
-            pdf.showPage()
-            y = altura - 50
-            pdf.setFont("Helvetica", 9)
-
-    pdf.save()
-
-    return nome_arquivo
+def rodape(canvas, documento):
+    canvas.saveState()
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.grey)
+    canvas.drawString(35, 25, "DEZFOR | Gestão Inteligente")
+    canvas.drawRightString(
+        A4[0] - 35, 25, f"Página {documento.page}"
+    )
+    canvas.restoreState()
