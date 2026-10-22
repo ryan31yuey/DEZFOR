@@ -1,114 +1,83 @@
+
 import customtkinter as ctk
 
 from database.database import Database
-from assets.theme.theme import *
+from assets.theme.theme import (
+    BACKGROUND, CARD, PRIMARY, SUCCESS, TEXT,
+    TEXT_SECONDARY, FONT_TITLE, FONT_SUBTITLE,
+    FONT_TEXT, FONT_SMALL
+)
 from ui.components import CardDashboard
 
 
 class Dashboard(ctk.CTkFrame):
-
     def __init__(self, master):
-        super().__init__(master)
-
-        self.banco = Database()
-
+        super().__init__(master, fg_color=BACKGROUND)
         self.pack(fill="both", expand=True)
-        self.configure(fg_color=BACKGROUND)
 
-        titulo = ctk.CTkLabel(
-            self,
-            text="🛡 SafeControl",
-            font=FONT_TITLE,
-            text_color=PRIMARY
-        )
-        titulo.pack(pady=(25, 5))
+        banco = Database()
+        try:
+            indicadores = [
+                ("♙", "Colaboradores", banco.total_colaboradores()),
+                ("⚙", "Equipamentos", banco.total_equipamentos()),
+                ("▣", "Estoque Total", banco.total_estoque()),
+                ("↗", "Retiradas", banco.total_retiradas()),
+                ("↙", "Devoluções", banco.total_devolucoes()),
+            ]
+            movimentacoes = banco.ultimas_movimentacoes()
+        finally:
+            banco.fechar()
 
-        subtitulo = ctk.CTkLabel(
-            self,
-            text="Gestão Inteligente de EPIs",
-            font=FONT_SUBTITLE,
-            text_color=TEXT_SECONDARY
-        )
-        subtitulo.pack(pady=(0, 20))
+        ctk.CTkLabel(
+            self, text="◆ DEZFOR",
+            font=FONT_TITLE, text_color=PRIMARY
+        ).pack(pady=(15, 3))
 
-        frame_cards = ctk.CTkFrame(self, fg_color="transparent")
-        frame_cards.pack(pady=5)
+        ctk.CTkLabel(
+            self, text="Gestão Inteligente",
+            font=FONT_SUBTITLE, text_color=TEXT_SECONDARY
+        ).pack(pady=(0, 10))
 
-        cards = [
-            ("👷", "Colaboradores", self.banco.total_colaboradores()),
-            ("🦺", "Equipamentos", self.banco.total_equipamentos()),
-            ("📦", "Estoque Total", self.banco.total_estoque()),
-            ("📤", "Retiradas", self.banco.total_retiradas()),
-            ("📥", "Devoluções", self.banco.total_devolucoes()),
-        ]
+        painel = ctk.CTkFrame(self, fg_color="transparent")
+        painel.pack(pady=5)
 
-        for i, (icone, titulo_card, valor) in enumerate(cards):
-            card = CardDashboard(
-                frame_cards,
-                icone=icone,
-                titulo=titulo_card,
-                valor=valor
-            )
+        for i, (icone, titulo, valor) in enumerate(indicadores):
+            CardDashboard(
+                painel, icone=icone, titulo=titulo, valor=valor
+            ).grid(row=i // 3, column=i % 3, padx=10, pady=10)
 
-            linha = i // 2
-            coluna = i % 2
+        self.criar_movimentacoes(movimentacoes)
 
-            card.grid(
-                row=linha,
-                column=coluna,
-                padx=18,
-                pady=14
-            )
-
-        self.criar_ultimas_movimentacoes()
-
-    def criar_ultimas_movimentacoes(self):
+    def criar_movimentacoes(self, movimentacoes):
         painel = ctk.CTkFrame(
-            self,
-            width=560,
-            height=190,
-            corner_radius=18,
-            fg_color=CARD
+            self, width=680, height=220,
+            corner_radius=14, fg_color=CARD
         )
-        painel.pack(pady=(10, 20))
+        painel.pack(pady=(10, 15))
         painel.pack_propagate(False)
 
-        titulo = ctk.CTkLabel(
-            painel,
-            text="🕒 Últimas Movimentações",
-            font=("Segoe UI", 18, "bold"),
+        ctk.CTkLabel(
+            painel, text="◷ Últimas Movimentações",
+            font=("Segoe UI", 17, "bold"),
             text_color=TEXT
-        )
-        titulo.pack(anchor="w", padx=20, pady=(15, 10))
+        ).pack(anchor="w", padx=20, pady=(10, 5))
 
-        movimentacoes = self.banco.ultimas_movimentacoes()
-
-        if len(movimentacoes) == 0:
-            vazio = ctk.CTkLabel(
-                painel,
-                text="Nenhuma movimentação registrada ainda.",
-                font=FONT_TEXT,
-                text_color=TEXT_SECONDARY
-            )
-            vazio.pack(pady=25)
+        if not movimentacoes:
+            ctk.CTkLabel(
+                painel, text="Nenhuma movimentação registrada.",
+                font=FONT_TEXT, text_color=TEXT_SECONDARY
+            ).pack(pady=20)
             return
 
-        for mov in movimentacoes:
-            data, hora, colaborador, equipamento, tipo, quantidade = mov
+        for data, hora, colaborador, equipamento, tipo, quantidade in movimentacoes:
+            retirada = tipo == "Retirada"
+            acao = "retirou" if retirada else "devolveu"
+            icone = "↗" if retirada else "↙"
 
-            if tipo == "Retirada":
-                icone = "📤"
-                cor = PRIMARY
-                texto = f"{hora} • {colaborador} retirou {quantidade}x {equipamento}"
-            else:
-                icone = "📥"
-                cor = SUCCESS
-                texto = f"{hora} • {colaborador} devolveu {quantidade}x {equipamento}"
-
-            linha = ctk.CTkLabel(
+            ctk.CTkLabel(
                 painel,
-                text=f"{icone} {texto}",
+                text=f"{icone} {data} • {hora} | {colaborador} {acao} "
+                     f"{quantidade}x {equipamento}",
                 font=FONT_SMALL,
-                text_color=cor
-            )
-            linha.pack(anchor="w", padx=25, pady=3)
+                text_color=PRIMARY if retirada else SUCCESS
+            ).pack(anchor="w", padx=20, pady=2)

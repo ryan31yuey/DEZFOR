@@ -1,3 +1,38 @@
+
+# Python
 __pycache__/
-*.pyc
-database/nr35.db
+*.py[cod]
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Banco de dados
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Relatórios gerados
+reports/*.pdf
+
+# Backups
+backups/
+*.bak
+
+# Configurações locais
+.env
+.env.*
+!.env.example
+.usuario_local
+
+# IDE e sistema operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários
+*.log
+*.tmp

@@ -1,21 +1,32 @@
+
 import customtkinter as ctk
 from tkinter import messagebox
+from pathlib import Path
 
-from assets.theme.theme import *
+from assets.theme.theme import (
+    BACKGROUND, CARD, PRIMARY, TEXT_SECONDARY,
+    FONT_TITLE, FONT_SUBTITLE, FONT_TEXT, FONT_SMALL
+)
+from database.auth import autenticar
 from ui.components import BotaoPrimario
 
 
-class Login(ctk.CTkFrame):
+ARQUIVO_USUARIO = (
+    Path(__file__).resolve().parent.parent / ".usuario_local"
+)
 
+
+class Login(ctk.CTkFrame):
     def __init__(self, master, abrir_sistema):
-        super().__init__(master)
+        super().__init__(master, fg_color=BACKGROUND)
 
         self.abrir_sistema = abrir_sistema
-
         self.pack(fill="both", expand=True)
 
-        self.configure(fg_color=BACKGROUND)
+        self.criar_interface()
+        self.carregar_usuario()
 
+    def criar_interface(self):
         caixa = ctk.CTkFrame(
             self,
             width=460,
@@ -26,32 +37,27 @@ class Login(ctk.CTkFrame):
         caixa.place(relx=0.5, rely=0.5, anchor="center")
         caixa.pack_propagate(False)
 
-        logo = ctk.CTkLabel(
-            caixa,
-            text="🛡",
-            font=("Segoe UI Emoji", 55)
-        )
-        logo.pack(pady=(25, 5))
+        def texto(conteudo, fonte, cor=TEXT_SECONDARY, pady=0):
+            label = ctk.CTkLabel(
+                caixa,
+                text=conteudo,
+                font=fonte,
+                text_color=cor
+            )
+            label.pack(pady=pady)
+            return label
 
-        titulo = ctk.CTkLabel(
-            caixa,
-            text="SafeControl",
-            font=FONT_TITLE,
-            text_color=PRIMARY
+        texto("◆", ("Segoe UI", 55), PRIMARY, (25, 5))
+        texto("DEZFOR", FONT_TITLE, PRIMARY)
+        texto(
+            "Gestão Inteligente",
+            FONT_SUBTITLE,
+            pady=(0, 35)
         )
-        titulo.pack()
-
-        subtitulo = ctk.CTkLabel(
-            caixa,
-            text="Gestão Inteligente de EPIs",
-            font=FONT_SUBTITLE,
-            text_color=TEXT_SECONDARY
-        )
-        subtitulo.pack(pady=(0, 35))
 
         self.campo_usuario = ctk.CTkEntry(
             caixa,
-            placeholder_text="👤 Usuário",
+            placeholder_text="Usuário",
             width=330,
             height=45,
             corner_radius=10
@@ -60,11 +66,11 @@ class Login(ctk.CTkFrame):
 
         self.campo_senha = ctk.CTkEntry(
             caixa,
-            placeholder_text="🔒 Senha",
+            placeholder_text="Senha",
             width=330,
             height=45,
-            show="*",
-            corner_radius=10
+            corner_radius=10,
+            show="*"
         )
         self.campo_senha.pack(pady=10)
 
@@ -79,37 +85,63 @@ class Login(ctk.CTkFrame):
             pady=(5, 20)
         )
 
-        botao = BotaoPrimario(
+        BotaoPrimario(
             caixa,
             text="ENTRAR",
             command=self.validar_login
-        )
-        botao.pack()
+        ).pack()
 
-        versao = ctk.CTkLabel(
-            caixa,
-            text="Versão 1.0",
-            font=FONT_SMALL,
-            text_color=TEXT_SECONDARY
+        texto(
+            "Versão 1.0",
+            FONT_SMALL,
+            pady=(40, 0)
         )
-        versao.pack(pady=(40, 0))
+        texto(
+            "Desenvolvido por Ryan Yuey",
+            FONT_SMALL
+        )
 
-        autor = ctk.CTkLabel(
-            caixa,
-            text="Desenvolvido por Ryan Yuey",
-            font=FONT_SMALL,
-            text_color=TEXT_SECONDARY
+        self.campo_senha.bind(
+            "<Return>",
+            lambda evento: self.validar_login()
         )
-        autor.pack()
+
+    def carregar_usuario(self):
+        if ARQUIVO_USUARIO.exists():
+            usuario = ARQUIVO_USUARIO.read_text(
+                encoding="utf-8"
+            ).strip()
+
+            if usuario:
+                self.campo_usuario.insert(0, usuario)
+                self.lembrar.select()
+
+    def salvar_preferencia(self, usuario):
+        if self.lembrar.get():
+            ARQUIVO_USUARIO.write_text(
+                usuario,
+                encoding="utf-8"
+            )
+        else:
+            ARQUIVO_USUARIO.unlink(missing_ok=True)
 
     def validar_login(self):
-        usuario = self.campo_usuario.get()
+        usuario = self.campo_usuario.get().strip()
         senha = self.campo_senha.get()
 
-        if usuario == "admin" and senha == "123456":
-            self.abrir_sistema()
+        if not usuario or not senha:
+            messagebox.showwarning(
+                "Atenção",
+                "Informe o usuário e a senha."
+            )
+            return
+
+        if autenticar(usuario, senha):
+            self.salvar_preferencia(usuario)
+            self.after_idle(self.abrir_sistema)
         else:
             messagebox.showerror(
-                "Erro",
+                "Acesso negado",
                 "Usuário ou senha inválidos."
             )
+            self.campo_senha.delete(0, "end")
