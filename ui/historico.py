@@ -96,7 +96,7 @@ class Historico(ctk.CTkFrame):
 
         janela = ctk.CTkToplevel(self)
         janela.title("Autorização administrativa")
-        janela.geometry("380x260")
+        janela.geometry("380x330")
         janela.resizable(False, False)
         janela.transient(self.winfo_toplevel())
         janela.grab_set()
@@ -105,12 +105,21 @@ class Historico(ctk.CTkFrame):
             janela,
             text="Confirmar identidade",
             font=("Segoe UI", 20, "bold")
-        ).pack(pady=(25, 5))
+        ).pack(pady=(20, 5))
 
         ctk.CTkLabel(
             janela,
-            text="Informe a senha do administrador."
+            text="Informe suas credenciais de acesso."
         ).pack(pady=(0, 15))
+
+        campo_usuario = ctk.CTkEntry(
+            janela,
+            placeholder_text="Usuário",
+            width=280,
+            height=40
+        )
+        campo_usuario.pack(pady=5)
+        campo_usuario.focus_set()
 
         campo_senha = ctk.CTkEntry(
             janela,
@@ -120,16 +129,19 @@ class Historico(ctk.CTkFrame):
             height=40
         )
         campo_senha.pack(pady=5)
-        campo_senha.focus_set()
 
         def confirmar_exclusao():
-            if not autenticar("admin", campo_senha.get()):
+            usuario = campo_usuario.get().strip()
+            senha = campo_senha.get()
+
+            if not autenticar(usuario, senha):
                 messagebox.showerror(
                     "Acesso negado",
-                    "Senha administrativa incorreta.",
+                    "Usuário ou senha incorretos.",
                     parent=janela
                 )
                 campo_senha.delete(0, "end")
+                campo_senha.focus_set()
                 return
 
             confirmar = messagebox.askyesno(
