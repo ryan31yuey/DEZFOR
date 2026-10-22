@@ -1,115 +1,66 @@
+
 import customtkinter as ctk
 from tkinter import messagebox
 
-from assets.theme.theme import *
+from assets.theme.theme import (
+    BACKGROUND, CARD, PRIMARY, TEXT_SECONDARY,
+    FONT_TITLE, FONT_SUBTITLE, FONT_TEXT, FONT_SMALL
+)
 from ui.components import BotaoPrimario
 
 
 class Login(ctk.CTkFrame):
-
     def __init__(self, master, abrir_sistema):
-        super().__init__(master)
-
+        super().__init__(master, fg_color=BACKGROUND)
         self.abrir_sistema = abrir_sistema
-
         self.pack(fill="both", expand=True)
 
-        self.configure(fg_color=BACKGROUND)
-
         caixa = ctk.CTkFrame(
-            self,
-            width=460,
-            height=520,
-            corner_radius=18,
-            fg_color=CARD
+            self, width=460, height=520,
+            corner_radius=18, fg_color=CARD
         )
         caixa.place(relx=0.5, rely=0.5, anchor="center")
         caixa.pack_propagate(False)
 
-        logo = ctk.CTkLabel(
-            caixa,
-            text="🛡",
-            font=("Segoe UI Emoji", 55)
-        )
-        logo.pack(pady=(25, 5))
+        def texto(conteudo, fonte, cor=TEXT_SECONDARY, pady=0):
+            label = ctk.CTkLabel(
+                caixa, text=conteudo, font=fonte, text_color=cor
+            )
+            label.pack(pady=pady)
+            return label
 
-        titulo = ctk.CTkLabel(
-            caixa,
-            text="SafeControl",
-            font=FONT_TITLE,
-            text_color=PRIMARY
-        )
-        titulo.pack()
+        texto("◆", ("Segoe UI", 55), PRIMARY, (25, 5))
+        texto("DEZFOR", FONT_TITLE, PRIMARY)
+        texto("Gestão inteligente de ativos", FONT_SUBTITLE, pady=(0, 35))
 
-        subtitulo = ctk.CTkLabel(
-            caixa,
-            text="Gestão Inteligente de EPIs",
-            font=FONT_SUBTITLE,
-            text_color=TEXT_SECONDARY
-        )
-        subtitulo.pack(pady=(0, 35))
+        for atributo, placeholder, ocultar in (
+            ("campo_usuario", "Usuário", False),
+            ("campo_senha", "Senha", True)
+        ):
+            campo = ctk.CTkEntry(
+                caixa, placeholder_text=placeholder,
+                width=330, height=45, corner_radius=10,
+                show="*" if ocultar else ""
+            )
+            campo.pack(pady=10)
+            setattr(self, atributo, campo)
 
-        self.campo_usuario = ctk.CTkEntry(
-            caixa,
-            placeholder_text="👤 Usuário",
-            width=330,
-            height=45,
-            corner_radius=10
-        )
-        self.campo_usuario.pack(pady=10)
+        ctk.CTkCheckBox(
+            caixa, text="Lembrar usuário", font=FONT_TEXT
+        ).pack(anchor="w", padx=65, pady=(5, 20))
 
-        self.campo_senha = ctk.CTkEntry(
-            caixa,
-            placeholder_text="🔒 Senha",
-            width=330,
-            height=45,
-            show="*",
-            corner_radius=10
-        )
-        self.campo_senha.pack(pady=10)
+        BotaoPrimario(
+            caixa, text="ENTRAR", command=self.validar_login
+        ).pack()
 
-        self.lembrar = ctk.CTkCheckBox(
-            caixa,
-            text="Lembrar usuário",
-            font=FONT_TEXT
-        )
-        self.lembrar.pack(
-            anchor="w",
-            padx=65,
-            pady=(5, 20)
-        )
-
-        botao = BotaoPrimario(
-            caixa,
-            text="ENTRAR",
-            command=self.validar_login
-        )
-        botao.pack()
-
-        versao = ctk.CTkLabel(
-            caixa,
-            text="Versão 1.0",
-            font=FONT_SMALL,
-            text_color=TEXT_SECONDARY
-        )
-        versao.pack(pady=(40, 0))
-
-        autor = ctk.CTkLabel(
-            caixa,
-            text="Desenvolvido por Ryan Yuey",
-            font=FONT_SMALL,
-            text_color=TEXT_SECONDARY
-        )
-        autor.pack()
+        texto("Versão 1.0", FONT_SMALL, pady=(40, 0))
+        texto("Desenvolvido por Ryan Yuey", FONT_SMALL)
 
     def validar_login(self):
-        usuario = self.campo_usuario.get()
+        usuario = self.campo_usuario.get().strip()
         senha = self.campo_senha.get()
 
         if usuario == "admin" and senha == "123456":
-            self.abrir_sistema()
+            self.after_idle(self.abrir_sistema)
         else:
-            messagebox.showerror(
-                "Erro",
-                "Usuário ou senha inválidos."
-            )
+            messagebox.showerror("Erro", "Usuário ou senha inválidos.")

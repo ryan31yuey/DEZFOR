@@ -1,253 +1,169 @@
+
+import sqlite3
 import customtkinter as ctk
-from tkinter import messagebox
-from tkinter import ttk
+from tkinter import messagebox, ttk
+
 from database.database import Database
 
 
 class Colaboradores(ctk.CTkFrame):
+    CAMPOS = {
+        "nome": "Nome do colaborador",
+        "registro": "Matrícula / Registro",
+        "setor": "Setor"
+    }
 
     def __init__(self, master):
         super().__init__(master)
+        self.pack(fill="both", expand=True)
 
         self.banco = Database()
         self.id_selecionado = None
+        self.campos = {}
 
-        self.pack(fill="both", expand=True)
+        ctk.CTkLabel(
+            self, text="Colaboradores",
+            font=("Segoe UI", 28, "bold")
+        ).pack(pady=(20, 10))
 
-        titulo = ctk.CTkLabel(
-            self,
-            text="Cadastro de Colaboradores",
-            font=("Arial", 28, "bold")
+        formulario = ctk.CTkFrame(self)
+        formulario.pack(pady=10, padx=20)
+
+        for nome, placeholder in self.CAMPOS.items():
+            campo = ctk.CTkEntry(
+                formulario, placeholder_text=placeholder,
+                width=400, height=40
+            )
+            campo.pack(padx=20, pady=8)
+            self.campos[nome] = campo
+
+        botoes = ctk.CTkFrame(formulario, fg_color="transparent")
+        botoes.pack(pady=15)
+
+        for texto, comando, cor in [
+            ("Salvar", self.salvar_colaborador, None),
+            ("Atualizar", self.atualizar_colaborador, None),
+            ("Excluir", self.excluir_colaborador, "#b71c1c")
+        ]:
+            opcoes = {"fg_color": cor} if cor else {}
+            ctk.CTkButton(
+                botoes, text=texto, width=115,
+                command=comando, **opcoes
+            ).pack(side="left", padx=5)
+
+        self.pesquisa = ctk.CTkEntry(
+            self, placeholder_text="Pesquisar colaborador...",
+            width=700, height=40
         )
-        titulo.pack(pady=(30, 15))
+        self.pesquisa.pack(pady=10)
+        self.pesquisa.bind("<KeyRelease>", self.atualizar_lista)
 
-        formulario = ctk.CTkFrame(self, width=500, height=320)
-        formulario.pack(pady=10)
-        formulario.pack_propagate(False)
-
-        self.campo_nome = ctk.CTkEntry(
-            formulario,
-            placeholder_text="Nome do colaborador",
-            width=400,
-            height=40
-        )
-        self.campo_nome.pack(pady=12)
-
-        self.campo_matricula = ctk.CTkEntry(
-            formulario,
-            placeholder_text="Matrícula / Registro",
-            width=400,
-            height=40
-        )
-        self.campo_matricula.pack(pady=12)
-
-        self.campo_setor = ctk.CTkEntry(
-            formulario,
-            placeholder_text="Setor",
-            width=400,
-            height=40
-        )
-        self.campo_setor.pack(pady=12)
-
-        frame_botoes = ctk.CTkFrame(
-            formulario,
-            fg_color="transparent"
-        )
-        frame_botoes.pack(pady=20)
-
-        ctk.CTkButton(
-            frame_botoes,
-            text="💾 Salvar",
-            width=120,
-            command=self.salvar_colaborador
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            frame_botoes,
-            text="✏ Atualizar",
-            width=120,
-            command=self.atualizar_colaborador
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            frame_botoes,
-            text="🗑 Excluir",
-            width=120,
-            fg_color="#b71c1c",
-            hover_color="#8e0000",
-            command=self.excluir_colaborador
-        ).pack(side="left", padx=5)
-
-        self.campo_pesquisa = ctk.CTkEntry(
-            self,
-            placeholder_text="Pesquisar colaborador...",
-            width=700,
-            height=40
-        )
-        self.campo_pesquisa.pack(pady=(10, 5))
-        self.campo_pesquisa.bind("<KeyRelease>", self.pesquisar)
-
+        colunas = ("id", "nome", "registro", "setor")
         self.tabela = ttk.Treeview(
-            self,
-            columns=("id", "nome", "registro", "setor"),
-            show="headings",
-            height=8
+            self, columns=colunas, show="headings", height=8
         )
 
-        self.tabela.heading("id", text="ID")
-        self.tabela.heading("nome", text="Nome")
-        self.tabela.heading("registro", text="Registro")
-        self.tabela.heading("setor", text="Setor")
+        for coluna, largura in zip(colunas, (60, 260, 150, 200)):
+            self.tabela.heading(coluna, text=coluna.capitalize())
+            self.tabela.column(
+                coluna, width=largura,
+                anchor="w" if coluna == "nome" else "center"
+            )
 
-        self.tabela.column("id", width=60, anchor="center")
-        self.tabela.column("nome", width=260)
-        self.tabela.column("registro", width=150, anchor="center")
-        self.tabela.column("setor", width=200)
-
-        self.tabela.pack(pady=20)
-        self.tabela.bind("<<TreeviewSelect>>", self.selecionar_colaborador)
-
+        self.tabela.pack(pady=10)
+        self.tabela.bind(
+            "<<TreeviewSelect>>", self.selecionar_colaborador
+        )
         self.atualizar_lista()
+
+    def dados_formulario(self):
+        dados = [
+            campo.get().strip() for campo in self.campos.values()
+        ]
+        if not all(dados):
+            messagebox.showwarning("Atenção", "Preencha todos os campos.")
+            return None
+        return dados
 
     def salvar_colaborador(self):
-        nome = self.campo_nome.get()
-        registro = self.campo_matricula.get()
-        setor = self.campo_setor.get()
-
-        if nome == "" or registro == "" or setor == "":
-            messagebox.showwarning(
-                "Atenção",
-                "Preencha todos os campos."
-            )
-            return
-
-        self.banco.cadastrar_colaborador(nome, registro, setor)
-
-        messagebox.showinfo(
-            "Sucesso",
-            "Colaborador cadastrado com sucesso!"
-        )
-
-        self.limpar_campos()
-        self.atualizar_lista()
+        self.persistir()
 
     def atualizar_colaborador(self):
-
         if self.id_selecionado is None:
-            messagebox.showwarning(
-                "Atenção",
-                "Selecione um colaborador."
-            )
+            messagebox.showwarning("Atenção", "Selecione um colaborador.")
+            return
+        self.persistir(atualizar=True)
+
+    def persistir(self, atualizar=False):
+        dados = self.dados_formulario()
+        if dados is None:
             return
 
-        nome = self.campo_nome.get()
-        registro = self.campo_matricula.get()
-        setor = self.campo_setor.get()
-
-        if nome == "" or registro == "" or setor == "":
-            messagebox.showwarning(
-                "Atenção",
-                "Preencha todos os campos."
+        try:
+            if atualizar:
+                self.banco.atualizar_colaborador(
+                    self.id_selecionado, *dados
+                )
+            else:
+                self.banco.cadastrar_colaborador(*dados)
+        except sqlite3.IntegrityError:
+            messagebox.showerror(
+                "Erro", "Esta matrícula já está cadastrada."
             )
             return
-
-        self.banco.atualizar_colaborador(
-            self.id_selecionado,
-            nome,
-            registro,
-            setor
-        )
-
-        messagebox.showinfo(
-            "Sucesso",
-            "Colaborador atualizado com sucesso!"
-        )
 
         self.limpar_campos()
         self.atualizar_lista()
+        acao = "atualizado" if atualizar else "cadastrado"
+        messagebox.showinfo("Sucesso", f"Colaborador {acao} com sucesso!")
 
     def excluir_colaborador(self):
-
         if self.id_selecionado is None:
-            messagebox.showwarning(
-                "Atenção",
-                "Selecione um colaborador."
-            )
+            messagebox.showwarning("Atenção", "Selecione um colaborador.")
             return
 
-        confirmar = messagebox.askyesno(
-            "Excluir",
-            "Deseja realmente excluir este colaborador?"
-        )
-
-        if confirmar:
-
+        if messagebox.askyesno(
+            "Excluir", "Deseja realmente excluir este colaborador?"
+        ):
             self.banco.excluir_colaborador(self.id_selecionado)
-
-            messagebox.showinfo(
-                "Sucesso",
-                "Colaborador excluído."
-            )
-
             self.limpar_campos()
             self.atualizar_lista()
+            messagebox.showinfo("Sucesso", "Colaborador excluído.")
 
-    def atualizar_lista(self):
-
-        for item in self.tabela.get_children():
-            self.tabela.delete(item)
-
-        colaboradores = self.banco.listar_colaboradores()
-
-        for colaborador in colaboradores:
-            self.tabela.insert(
-                "",
-                "end",
-                values=colaborador
-            )
-
-    def pesquisar(self, evento):
-
-        termo = self.campo_pesquisa.get()
-
-        for item in self.tabela.get_children():
-            self.tabela.delete(item)
-
-        colaboradores = self.banco.pesquisar_colaboradores(termo)
-
-        for colaborador in colaboradores:
-            self.tabela.insert(
-                "",
-                "end",
-                values=colaborador
-            )
-
-    def selecionar_colaborador(self, evento):
-
-        selecionado = self.tabela.selection()
-
-        if not selecionado:
-            return
-
-        dados = self.tabela.item(
-            selecionado[0],
-            "values"
+    def atualizar_lista(self, evento=None):
+        termo = self.pesquisa.get().strip()
+        registros = (
+            self.banco.pesquisar_colaboradores(termo)
+            if termo else self.banco.listar_colaboradores()
         )
 
-        self.id_selecionado = dados[0]
+        for item in self.tabela.get_children():
+            self.tabela.delete(item)
 
-        self.campo_nome.delete(0, "end")
-        self.campo_matricula.delete(0, "end")
-        self.campo_setor.delete(0, "end")
+        for registro in registros:
+            self.tabela.insert("", "end", values=registro)
 
-        self.campo_nome.insert(0, dados[1])
-        self.campo_matricula.insert(0, dados[2])
-        self.campo_setor.insert(0, dados[3])
+    def selecionar_colaborador(self, evento=None):
+        selecionados = self.tabela.selection()
+        if not selecionados:
+            return
+
+        id_colaborador, *dados = self.tabela.item(
+            selecionados[0], "values"
+        )
+        self.id_selecionado = int(id_colaborador)
+
+        for campo, valor in zip(self.campos.values(), dados):
+            campo.delete(0, "end")
+            campo.insert(0, valor)
 
     def limpar_campos(self):
-
         self.id_selecionado = None
+        self.tabela.selection_remove(*self.tabela.selection())
 
-        self.campo_nome.delete(0, "end")
-        self.campo_matricula.delete(0, "end")
-        self.campo_setor.delete(0, "end")
+        for campo in self.campos.values():
+            campo.delete(0, "end")
+
+    def destroy(self):
+        self.banco.fechar()
+        super().destroy()
