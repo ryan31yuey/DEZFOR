@@ -19,8 +19,8 @@ class Dashboard(ctk.CTkFrame):
         try:
             indicadores = [
                 ("♙", "Colaboradores", banco.total_colaboradores()),
-                ("▣", "Equipamentos", banco.total_equipamentos()),
-                ("▤", "Estoque Total", banco.total_estoque()),
+                ("⚙", "Equipamentos", banco.total_equipamentos()),
+                ("▣", "Estoque Total", banco.total_estoque()),
                 ("↗", "Retiradas", banco.total_retiradas()),
                 ("↙", "Devoluções", banco.total_devolucoes()),
             ]
@@ -50,7 +50,7 @@ class Dashboard(ctk.CTkFrame):
 
     def criar_movimentacoes(self, movimentacoes):
         painel = ctk.CTkFrame(
-            self, width=680, height=150,
+            self, width=680, height=220,
             corner_radius=14, fg_color=CARD
         )
         painel.pack(pady=(10, 15))
@@ -64,8 +64,7 @@ class Dashboard(ctk.CTkFrame):
 
         if not movimentacoes:
             ctk.CTkLabel(
-                painel,
-                text="Nenhuma movimentação registrada.",
+                painel, text="Nenhuma movimentação registrada.",
                 font=FONT_TEXT, text_color=TEXT_SECONDARY
             ).pack(pady=20)
             return
@@ -77,7 +76,7 @@ class Dashboard(ctk.CTkFrame):
 
             ctk.CTkLabel(
                 painel,
-                text=f"{icone} {hora} • {colaborador} {acao} "
+                text=f"{icone} {data} • {hora} | {colaborador} {acao} "
                      f"{quantidade}x {equipamento}",
                 font=FONT_SMALL,
                 text_color=PRIMARY if retirada else SUCCESS

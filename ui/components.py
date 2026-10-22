@@ -68,7 +68,9 @@ class CardDashboard(ctk.CTkFrame):
         topo.pack(fill="x", padx=14, pady=(10, 0))
 
         ctk.CTkLabel(
-            topo, text=icone, font=("Segoe UI Symbol", 22)
+            topo, text=icone,
+            font=("Segoe UI Symbol", 22),
+            text_color=PRIMARY
         ).pack(side="left")
 
         ctk.CTkLabel(
