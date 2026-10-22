@@ -147,6 +147,6 @@ Atualmente, o projeto está em fase de revisão, documentação e preparação p
 
 ## Autor
 
-**Ryan Silva Yuey**
+**Ryan Yuey**
 
 Projeto desenvolvido para aplicação prática de conhecimentos em Tecnologia da Informação e composição de portfólio profissional na área de desenvolvimento de software.
