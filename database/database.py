@@ -3,7 +3,6 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-
 DB_PATH = Path(__file__).resolve().parent / "nr35.db"
 
 
@@ -83,8 +82,7 @@ class Database:
 
     def atualizar_colaborador(self, id_colaborador, nome, registro, setor):
         self.executar("""
-            UPDATE colaboradores
-            SET nome = ?, registro = ?, setor = ?
+            UPDATE colaboradores SET nome = ?, registro = ?, setor = ?
             WHERE id = ?
         """, (nome.strip(), registro.strip(), setor.strip(), id_colaborador))
 
@@ -186,27 +184,35 @@ class Database:
         """, (colaborador, equipamento, int(quantidade), tipo, data, hora))
 
     def movimentar_estoque(self, colaborador, equipamento, quantidade, tipo):
-        if tipo not in ("Retirada", "Devolução") or quantidade <= 0:
-            raise ValueError("Movimentação inválida.")
+        colaborador, equipamento = colaborador.strip(), equipamento.strip()
+
+        if tipo not in ("Retirada", "Devolução"):
+            raise ValueError("Tipo de movimentação inválido.")
+        if type(quantidade) is not int or quantidade <= 0:
+            raise ValueError("Informe uma quantidade inteira positiva.")
 
         diferenca = -quantidade if tipo == "Retirada" else quantidade
         agora = datetime.now()
 
         with self.conexao:
-            registros = self.conexao.execute(
+            existe = self.conexao.execute(
+                "SELECT 1 FROM colaboradores WHERE nome = ?", (colaborador,)
+            ).fetchone()
+
+            if not existe:
+                raise ValueError("Colaborador não cadastrado.")
+
+            equipamentos = self.conexao.execute(
                 "SELECT id FROM equipamentos WHERE nome = ?", (equipamento,)
             ).fetchall()
 
-            if len(registros) != 1:
-                raise ValueError(
-                    "Equipamento não encontrado ou nome duplicado."
-                )
+            if len(equipamentos) != 1:
+                raise ValueError("Equipamento não encontrado ou nome duplicado.")
 
-            id_equipamento = registros[0][0]
+            id_equipamento = equipamentos[0][0]
 
             cursor = self.conexao.execute("""
-                UPDATE equipamentos
-                SET quantidade = quantidade + ?
+                UPDATE equipamentos SET quantidade = quantidade + ?
                 WHERE id = ? AND quantidade + ? >= 0
             """, (diferenca, id_equipamento, diferenca))
 
@@ -260,7 +266,6 @@ class Database:
     def contar(self, tabela, condicao=""):
         if tabela not in ("colaboradores", "equipamentos", "movimentacoes"):
             raise ValueError("Tabela inválida.")
-
         if condicao and (
             tabela != "movimentacoes"
             or condicao not in ("Retirada", "Devolução")
